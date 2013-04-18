@@ -1,0 +1,26 @@
+
+<% config_file = "#{@conf_dir}/#{@name}.conf" %>
+
+God.watch do |w|
+  w.name = "redis"
+  w.interval = 30.seconds
+
+  <% if node.redis.install_type == "package" %>
+    <% case node.platform_family %>
+    <% when "rhel", "fedora" %>
+      w.start = "/usr/sbin/redis-server <%= config_file %>"
+      w.stop = "/usr/bin/redis-cli -p <%= @port %> shutdown"
+    <% when "debian" %>
+      w.start = "/usr/bin/redis-server <%= config_file %>"
+      w.stop = "/usr/bin/redis-cli -p <%= @port %> shutdown"
+    <% end %>
+  <% else %>
+    w.start = "<%= node.redis.dst_dir %>/bin/redis-server <%= config_file %>"
+    w.stop = "<%= node.redis.dst_dir %>/bin/redis-cli -p <%= @port %> shutdown"
+  <% end %>
+
+  w.start_grace = 10.seconds
+  w.restart_grace = 10.seconds
+  w.keepalive
+
+end

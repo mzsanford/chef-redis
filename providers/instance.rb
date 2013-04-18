@@ -13,7 +13,7 @@ def load_current_resource
   if new_resource.slaveof_ip || new_resource.slaveof
     new_resource.slaveof      new_resource.slaveof || "#{new_resource.slaveof_ip} #{new_resource.slaveof_port}"
   end
-    
+
   new_resource.configure_no_appendfsync_on_rewrite
   new_resource.configure_slowlog
   new_resource.configure_list_max_ziplist
@@ -23,7 +23,23 @@ def load_current_resource
 
   new_resource.state # Load attributes
 
-  @run_context.include_recipe "runit" if new_resource.init_style == "runit"
+  case new_resource.init_style
+  when "runit"
+    @run_context.include_recipe("runit")
+  when "god"
+    @run_context.include_recipe("god")
+  end
+end
+
+%w(start stop restart).each do |action|
+  execute "god_#{action}_redis" do
+    command "/sbin/service god status && god #{action} redis"
+    # Returns 3 if god isn't running (likely in the process of restarting)
+    returns [0 ,3]
+    user "root"
+    group "root"
+    action :nothing
+  end
 end
 
 action :create do
@@ -86,6 +102,8 @@ def create_config
       notifies :restart, "service[#{redis_service_name}]"
     when "runit"
       notifies :restart, "runit_service[#{redis_service_name}]"
+    when "god"
+      notifies :run, "execute[god_restart_redis]"
     end
   end
 end
@@ -109,18 +127,35 @@ def create_service_script
         :user     => new_resource.user
       })
     end
+  when "god"
+    god_monitor "redis" do
+      config "redis.god.erb"
+    end
   end
 end
 
 def enable_service
-  service redis_service do
-    action [ :enable, :start ]
+  case new_resource.init_style
+  when "god"
+    # god remove
+    notifies :run, "execute[god_start_redis]"
+  else
+    service redis_service do
+      action [ :enable, :start ]
+    end
   end
 end
 
 def disable_service
-  service redis_service do
-    action [ :disable, :stop ]
+  case new_resource.init_style
+    when "god"
+      # god remove
+      notifies :run, "execute[god_stop_redis]"
+      notifies :run, "execute[god_remove_redis]"
+    else
+      service redis_service do
+        action [ :disable, :stop ]
+      end
   end
 end
 

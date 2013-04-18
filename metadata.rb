@@ -17,7 +17,7 @@ recipe "redis::sentinel", "Setup sentinel for monitoring cluster"
   supports os
 end
 
-%w[ build-essential runit yum ].each do |cookbook|
+%w[ build-essential runit god yum ].each do |cookbook|
   depends cookbook
 end
 
