@@ -31,9 +31,9 @@ def load_current_resource
   end
 end
 
-%w(start stop restart).each do |action|
-  execute "god_#{action}_redis" do
-    command "/sbin/service god status && god #{action} redis"
+%w(start stop remove restart).each do |verb|
+  execute "god_#{verb}_redis" do
+    command "/sbin/service god status && god #{verb} redis"
     # Returns 3 if god isn't running (likely in the process of restarting)
     returns [0 ,3]
     user "root"
