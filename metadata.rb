@@ -13,7 +13,7 @@ recipe "redis::server_package", "Uses the recipe crumbs in the Redis cookbook to
 recipe "redis::server_source", "Uses the recipe crumbs in the Redis cookbook to manage a source compiled Redis instance."
 recipe "redis::sentinel", "Setup sentinel for monitoring cluster"
 
-%w[ ubuntu centos ].each do |os|
+%w[ ubuntu centos amazon ].each do |os|
   supports os
 end
 
