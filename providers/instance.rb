@@ -31,22 +31,12 @@ def load_current_resource
   end
 end
 
-%w(start stop remove restart).each do |verb|
-  execute "god_#{verb}_redis" do
-    command "/sbin/service god status && god #{verb} redis"
-    # Returns 3 if god isn't running (likely in the process of restarting)
-    returns [0 ,3]
-    user "root"
-    group "root"
-    action :nothing
-  end
-end
-
 action :create do
   create_user_and_group
   create_directories
   create_service_script
   create_config
+  create_god_service_hooks if new_resource.init_style == "god"
   enable_service
   new_resource.updated_by_last_action(true)
 end
@@ -58,6 +48,19 @@ action :destroy do
 end
 
 private
+
+def create_god_service_hooks
+  %w(start stop remove restart).each do |verb|
+    execute "god_#{verb}_redis" do
+      command "/sbin/service god status && god #{verb} redis"
+      # Returns 3 if god isn't running (likely in the process of restarting)
+      returns [0 ,3]
+      user "root"
+      group "root"
+      action :nothing
+    end
+  end
+end
 
 def create_user_and_group
   group new_resource.group
